@@ -1,0 +1,1 @@
+from .pckg.validator import Validator, validate
