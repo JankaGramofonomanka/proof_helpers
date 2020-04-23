@@ -3,6 +3,9 @@ class Validator():
     to prove or disprove."""
 
     def __init__(self, type_of_relation, func, *args, **kwargs):
+        # <func> should be a function that returns one of the strings "true",
+        # "false", "unknown" - the epistemological status of the statement
+        # that <self> represents
         
         self.type = type_of_relation
         self.func = func
