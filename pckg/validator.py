@@ -3,17 +3,29 @@ class Validator():
     to prove or disprove."""
 
     def __init__(self, type_of_relation, func, *args, **kwargs):
-        # <func> should be a function that returns one of the strings "true",
-        # "false", "unknown" - the epistemological status of the statement
-        # that <self> represents
+        # <func> should be a function that returns a string [status] or a
+        # tuple ([status], [info]), where 'status' is one of the strings
+        # "true", "false", "unknown" - the epistemological status of the
+        # statement that <self> represents, 'info' should be information
+        # about what is the reason for 'status' to be what it is
         
         self.type = type_of_relation
+
+        # TODO: copy the function
         self.func = func
         self.args = args
         self.kwargs = kwargs
 
     def status(self):
-        return self.process_status(self.func(*self.args, **self.kwargs))
+
+        result = self.func(*self.args, **self.kwargs)
+        if type(result) == tuple:
+            status, info = result
+        else:
+            status = result
+            info = 'no info'
+
+        return self.process_status(status), info
 
     def process_status(self, status):
 
@@ -78,9 +90,9 @@ def validate(*validators):
     of the statements related to the thesis"""
 
     for validator in validators:
-        status = validator.status()
+        status, info = validator.status()
 
         if status != 'unknown':
-            return status
+            return status, info
 
-    return 'unknown'
+    return 'unknown', "no info"

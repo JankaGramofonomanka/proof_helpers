@@ -4,17 +4,12 @@ from .validator import Validator, validate
 
 class TestValidator(unittest.TestCase):
 
-    def setUp(self):
-        def true():
-            return "true"
 
-        def unknown():
-            return "unknown"
+    def get_constant_func(self, result):
+        def func():
+            return result
 
-        def false():
-            return "false"
-
-        self.functions = {"true": true, "unknown": unknown, "false": false}
+        return func
 
     def test_validator(self):
         
@@ -50,34 +45,61 @@ class TestValidator(unittest.TestCase):
             status = info[0]
             thesis_status = info[2]
             relation_to_thesis = info[1]
-            validator = Validator(relation_to_thesis, self.functions[status])
+
+            func = self.get_constant_func(status)
+            validator = Validator(relation_to_thesis, func)
 
             self.assertEqual(validator.process_status(status), thesis_status)
-            self.assertEqual(validator.status(), thesis_status)
+
+            result = validator.status()
+            self.assertEqual(result[0], thesis_status)
+            self.assertEqual(result[1], "no info")
 
     def test_validate(self):
 
         test_data = [
-            # statement statuses
-            (("true", "unknown", "unknown", "unknown"),     "true"),
-            (("unknown", "true", "unknown", "unknown"),     "true"),
-            (("unknown", "unknown", "unknown", "true"),     "true"),
-            (("false", "unknown", "unknown", "unknown"),    "false"),
-            (("unknown", "unknown", "false", "unknown"),    "false"),
-            (("unknown", "unknown", "unknown", "false"),    "false"),
-            (("unknown", "unknown", "unknown", "unknown"),  "unknown"),
+            # statement statuses                                        info
+            #                                               thesis status
+            (("true", "unknown", "unknown", "unknown"),     "true",     0),
+            (("unknown", "true", "unknown", "unknown"),     "true",     1),
+            (("unknown", "unknown", "unknown", "true"),     "true",     3),
+            (("false", "unknown", "unknown", "unknown"),    "false",    0),
+            (("unknown", "unknown", "false", "unknown"),    "false",    2),
+            (("unknown", "unknown", "unknown", "false"),    "false",    3),
+            (("unknown", "unknown", "unknown", "unknown"),  "unknown",
+                                                                "no info"),
         ]
 
         for info in test_data:
 
             statuses = info[0]
             thesis_status = info[1]
+            expected_info = info[2]
 
             validators = []
-            for status in statuses:
+            for i in range(len(statuses)):
+                func = self.get_constant_func((statuses[i], i))
 
-                validator = Validator("equivalent", self.functions[status])
+                validator = Validator("equivalent", func)
                 validators.append(validator)
 
-            result = validate(*validators)
-            self.assertEqual(result, thesis_status)
+            status, validation_info = validate(*validators)
+            self.assertEqual(status, thesis_status)
+            self.assertEqual(validation_info, expected_info)
+
+    def test_info(self):
+
+        def n_is_biggest(*numbers, n):
+            for number in numbers:
+                if n < number:
+                    return 'false', f'n < {number}'
+
+            return 'true'
+
+        for n in range(7):
+            validator = Validator("implied", n_is_biggest, *range(8), n=n)
+            status, info = validator.status()
+
+            self.assertEqual(status, 'false')
+            self.assertEqual(info, f'n < {n + 1}')
+
